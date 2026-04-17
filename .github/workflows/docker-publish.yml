@@ -18,6 +18,25 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
+      - name: Prepare Docker image prefix
+        id: docker-meta
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          if [ -z "$DOCKERHUB_USERNAME" ]; then
+            echo "Missing DOCKERHUB_USERNAME secret."
+            exit 1
+          fi
+
+          DOCKERHUB_USERNAME_LOWER=$(printf '%s' "$DOCKERHUB_USERNAME" | tr '[:upper:]' '[:lower:]')
+
+          if ! printf '%s' "$DOCKERHUB_USERNAME_LOWER" | grep -Eq '^[a-z0-9]+([._-][a-z0-9]+)*$'; then
+            echo "Invalid DOCKERHUB_USERNAME value for Docker tags: $DOCKERHUB_USERNAME"
+            exit 1
+          fi
+
+          echo "image_prefix=$DOCKERHUB_USERNAME_LOWER" >> "$GITHUB_OUTPUT"
+
       - name: Login to DockerHub
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -33,19 +52,19 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./simple-api-student-main
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-simple-api:latest
+          tags: ${{ steps.docker-meta.outputs.image_prefix }}/tp-devops-simple-api:latest
           push: true
 
       - name: Build and push database image
         uses: docker/build-push-action@v6
         with:
           context: .
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-postgres-db:latest
+          tags: ${{ steps.docker-meta.outputs.image_prefix }}/tp-devops-postgres-db:latest
           push: true
 
       - name: Build and push http server image
         uses: docker/build-push-action@v6
         with:
           context: ./http-server
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp-devops-http-server:latest
+          tags: ${{ steps.docker-meta.outputs.image_prefix }}/tp-devops-http-server:latest
           push: true
