@@ -2,10 +2,10 @@
 
 ## Etat actuel
 
-- Le workflow principal est dans `.github/workflows/main.yml`.
-- Le job `test-backend` lance `mvn -B verify` sur `simple-api-student-main`.
-- Le job `build-and-push-docker-image` construit les 3 images Docker et ne pousse vers Docker Hub que sur `main`.
-- Le job `quality-gate` lance SonarCloud uniquement si les variables/secrets requis existent.
+- Le TP a ete finalise avec des workflows separes dans `.github/workflows/`.
+- `backend-ci.yml` execute `test-backend` sur `main` et `develop`.
+- `quality-gate.yml` est declenche apres succes de `Backend CI`.
+- `docker-publish.yml` est declenche apres succes de `Backend CI`, mais seulement pour `main`.
 
 ## Etape 1 - CI backend
 
@@ -69,10 +69,10 @@ Les images construites sont :
 - database : `./`
 - http server : `http-server`
 
-Le workflow fait deux choses :
+Le workflow final est separe :
 
-- sur `develop`, il verifie seulement que les images se buildent
-- sur `main`, il pousse les images vers Docker Hub
+- `Backend CI` verifie le code sur `develop` et `main`
+- `Build And Push Docker Images` ne se declenche que si `Backend CI` a reussi sur `main`
 
 ### 2-3 Pourquoi utiliser `needs: test-backend` ?
 
@@ -94,7 +94,7 @@ Pousser les images vers un registre permet :
 
 ## Etape 5 - Quality Gate SonarCloud
 
-Le job `quality-gate` est deja prepare dans le workflow.
+Le workflow `Quality Gate` est configure pour se lancer apres succes de `Backend CI`.
 
 Il te reste a :
 
@@ -104,7 +104,23 @@ Il te reste a :
 4. recuperer `SONAR_ORGANIZATION`
 5. ajouter `SONAR_TOKEN` dans les secrets GitHub
 
-## Etape 6 - Verification a faire sur ta machine / GitHub
+## Etape 6 - Going further: split pipelines
+
+La derniere partie du TP demandait de separer les pipelines.
+
+Implementation retenue :
+
+- `backend-ci.yml` : tests backend sur `develop` et `main`
+- `docker-publish.yml` : publication Docker uniquement apres succes de `Backend CI` sur `main`
+- `quality-gate.yml` : analyse SonarCloud apres succes de `Backend CI`
+
+Pourquoi utiliser `workflow_run` ?
+
+- cela permet de declencher un workflow uniquement si un autre est termine
+- on peut filtrer sur le succes du workflow precedent
+- on evite de publier des images si les tests ont echoue
+
+## Etape 7 - Verification a faire sur ta machine / GitHub
 
 1. demarrer Docker Desktop ou un daemon Docker compatible
 2. pousser ce projet dans un vrai depot GitHub
