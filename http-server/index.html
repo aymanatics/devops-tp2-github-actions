@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TP1 DevOps</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #eef4ff, #f8fbff);
+      color: #132238;
+    }
+
+    main {
+      max-width: 720px;
+      padding: 32px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 18px 45px rgba(19, 34, 56, 0.12);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    code {
+      background: #e9eef7;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    a {
+      color: #0b5ed7;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>TP1 Docker Stack</h1>
+    <p>The Apache container serves this page and proxies API requests to the Spring Boot backend.</p>
+    <p>Examples:</p>
+    <ul>
+      <li><a href="/api/?name=DevOps">/api/?name=DevOps</a></li>
+      <li><a href="/departments/IRC/students">/departments/IRC/students</a></li>
+      <li><a href="/students">/students</a></li>
+    </ul>
+  </main>
+</body>
+</html>
