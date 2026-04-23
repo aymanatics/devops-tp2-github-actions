@@ -3,55 +3,236 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TP1 DevOps</title>
+  <title>Students Directory</title>
   <style>
     :root {
       color-scheme: light;
-      font-family: Arial, sans-serif;
+      font-family: Inter, Arial, sans-serif;
+      background: #f5f7fb;
+      color: #172033;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     body {
       margin: 0;
       min-height: 100vh;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(135deg, #eef4ff, #f8fbff);
-      color: #132238;
+      background: #f5f7fb;
     }
 
-    main {
-      max-width: 720px;
-      padding: 32px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 18px 45px rgba(19, 34, 56, 0.12);
+    header {
+      padding: 32px clamp(20px, 6vw, 72px) 20px;
+      background: #ffffff;
+      border-bottom: 1px solid #d9e1ec;
     }
 
     h1 {
-      margin-top: 0;
+      margin: 0 0 10px;
+      font-size: 2rem;
+      line-height: 1.15;
+      letter-spacing: 0;
     }
 
-    code {
-      background: #e9eef7;
-      padding: 2px 6px;
-      border-radius: 6px;
+    header p {
+      margin: 0;
+      max-width: 760px;
+      color: #526073;
+      line-height: 1.55;
     }
 
-    a {
-      color: #0b5ed7;
+    main {
+      width: min(1120px, calc(100% - 40px));
+      margin: 28px auto 48px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      min-height: 40px;
+      border: 1px solid #bdc8d8;
+      border-radius: 8px;
+      padding: 0 14px;
+      background: #ffffff;
+      color: #172033;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button[aria-pressed="true"] {
+      border-color: #0a6f4e;
+      background: #dff5eb;
+      color: #064c37;
+    }
+
+    button:hover {
+      border-color: #5d6f86;
+    }
+
+    .status {
+      min-height: 24px;
+      color: #526073;
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      min-height: 126px;
+      border: 1px solid #d9e1ec;
+      border-radius: 8px;
+      padding: 18px;
+      background: #ffffff;
+      box-shadow: 0 10px 24px rgba(23, 32, 51, 0.06);
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .card p {
+      margin: 0;
+      color: #526073;
+      line-height: 1.45;
+    }
+
+    .error {
+      border-left: 4px solid #ba2d2d;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #fff1f1;
+      color: #7f1d1d;
+    }
+
+    @media (max-width: 620px) {
+      header {
+        padding-top: 24px;
+      }
+
+      .toolbar {
+        align-items: stretch;
+      }
+
+      .controls,
+      button {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
+  <header>
+    <h1>Students Directory</h1>
+    <p>Live data served by the Spring Boot API through the Apache reverse proxy.</p>
+  </header>
+
   <main>
-    <h1>TP1 Docker Stack</h1>
-    <p>The Apache container serves this page and proxies API requests to the Spring Boot backend.</p>
-    <p>Examples:</p>
-    <ul>
-      <li><a href="/api/?name=DevOps">/api/?name=DevOps</a></li>
-      <li><a href="/departments/IRC/students">/departments/IRC/students</a></li>
-      <li><a href="/students">/students</a></li>
-    </ul>
+    <section class="toolbar" aria-label="Student filters">
+      <div class="controls">
+        <button type="button" data-endpoint="/students" aria-pressed="true">All students</button>
+        <button type="button" data-endpoint="/departments/IRC/students" aria-pressed="false">IRC</button>
+        <button type="button" data-endpoint="/departments/ETI/students" aria-pressed="false">ETI</button>
+        <button type="button" data-endpoint="/departments/CGP/students" aria-pressed="false">CGP</button>
+      </div>
+      <div class="status" id="status" role="status">Loading students...</div>
+    </section>
+
+    <section id="content" class="grid" aria-live="polite"></section>
   </main>
+
+  <script>
+    const statusNode = document.querySelector('#status');
+    const contentNode = document.querySelector('#content');
+    const buttons = [...document.querySelectorAll('button[data-endpoint]')];
+
+    function studentName(student) {
+      return [student.firstname, student.lastname].filter(Boolean).join(' ') || student.name || `Student #${student.id}`;
+    }
+
+    function departmentName(student) {
+      if (typeof student.department === 'string') {
+        return student.department;
+      }
+
+      return student.department?.name || student.department?.code || 'No department';
+    }
+
+    function renderStudents(students) {
+      contentNode.className = 'grid';
+      contentNode.innerHTML = '';
+
+      if (!students.length) {
+        statusNode.textContent = 'No student returned by the API.';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      students.forEach((student) => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+          <h2>${studentName(student)}</h2>
+          <p>${departmentName(student)}</p>
+        `;
+        fragment.appendChild(card);
+      });
+
+      contentNode.appendChild(fragment);
+      statusNode.textContent = `${students.length} student${students.length > 1 ? 's' : ''} loaded`;
+    }
+
+    async function loadStudents(endpoint) {
+      statusNode.textContent = 'Loading students...';
+      contentNode.innerHTML = '';
+
+      try {
+        const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
+
+        if (!response.ok) {
+          throw new Error(`API returned HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        const students = Array.isArray(payload) ? payload : payload.students || [];
+        renderStudents(students);
+      } catch (error) {
+        statusNode.textContent = 'API unavailable';
+        contentNode.className = '';
+        contentNode.innerHTML = `<div class="error">${error.message}</div>`;
+      }
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener('click', () => {
+        buttons.forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+        loadStudents(button.dataset.endpoint);
+      });
+    });
+
+    loadStudents('/students');
+  </script>
 </body>
 </html>

@@ -1,0 +1,85 @@
+- name: Create remote build directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - "{{ remote_build_dir }}"
+    - "{{ remote_build_dir }}/initdb"
+    - "{{ remote_build_dir }}/simple-api-student-main"
+    - "{{ remote_build_dir }}/simple-api-student-main/src"
+    - "{{ remote_build_dir }}/http-server"
+  when: build_images_on_remote
+
+- name: Copy database Docker build files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: preserve
+  loop:
+    - src: "{{ playbook_dir }}/../Dockerfile"
+      dest: "{{ remote_build_dir }}/Dockerfile"
+    - src: "{{ playbook_dir }}/../initdb/"
+      dest: "{{ remote_build_dir }}/initdb/"
+  when: build_images_on_remote
+
+- name: Copy backend Docker build files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: preserve
+  loop:
+    - src: "{{ playbook_dir }}/../simple-api-student-main/Dockerfile"
+      dest: "{{ remote_build_dir }}/simple-api-student-main/Dockerfile"
+    - src: "{{ playbook_dir }}/../simple-api-student-main/pom.xml"
+      dest: "{{ remote_build_dir }}/simple-api-student-main/pom.xml"
+    - src: "{{ playbook_dir }}/../simple-api-student-main/src/"
+      dest: "{{ remote_build_dir }}/simple-api-student-main/src/"
+  when: build_images_on_remote
+
+- name: Copy proxy and front Docker build files
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: preserve
+  loop:
+    - src: "{{ playbook_dir }}/../http-server/Dockerfile"
+      dest: "{{ remote_build_dir }}/http-server/Dockerfile"
+    - src: "{{ playbook_dir }}/../http-server/index.html"
+      dest: "{{ remote_build_dir }}/http-server/index.html"
+    - src: "{{ playbook_dir }}/../http-server/reverse-proxy.conf"
+      dest: "{{ remote_build_dir }}/http-server/reverse-proxy.conf"
+  when: build_images_on_remote
+
+- name: Build PostgreSQL image on remote server
+  community.docker.docker_image:
+    name: "{{ postgres_image }}"
+    source: build
+    force_source: true
+    build:
+      path: "{{ remote_build_dir }}"
+  vars:
+    ansible_python_interpreter: "{{ docker_python_interpreter }}"
+  when: build_images_on_remote
+
+- name: Build Spring Boot API image on remote server
+  community.docker.docker_image:
+    name: "{{ api_image }}"
+    source: build
+    force_source: true
+    build:
+      path: "{{ remote_build_dir }}/simple-api-student-main"
+  vars:
+    ansible_python_interpreter: "{{ docker_python_interpreter }}"
+  when: build_images_on_remote
+
+- name: Build proxy and front image on remote server
+  community.docker.docker_image:
+    name: "{{ proxy_image }}"
+    source: build
+    force_source: true
+    build:
+      path: "{{ remote_build_dir }}/http-server"
+  vars:
+    ansible_python_interpreter: "{{ docker_python_interpreter }}"
+  when: build_images_on_remote

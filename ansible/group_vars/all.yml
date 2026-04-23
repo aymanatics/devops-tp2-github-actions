@@ -1,0 +1,21 @@
+dockerhub_username: "{{ lookup('env', 'DOCKERHUB_USERNAME') | default('aymanatics', true) | lower }}"
+image_tag: "{{ lookup('env', 'IMAGE_TAG') | default('latest', true) }}"
+build_images_on_remote: "{{ lookup('env', 'BUILD_IMAGES_ON_REMOTE') | default('false', true) | bool }}"
+container_pull_policy: "{{ build_images_on_remote | ternary('never', 'always') }}"
+
+app_network_name: tp3-app-network
+docker_python_interpreter: /opt/docker_venv/bin/python
+remote_build_dir: /opt/tp3-app
+
+postgres_container_name: postgres-db
+postgres_image: "{{ dockerhub_username }}/tp-devops-postgres-db:{{ image_tag }}"
+postgres_db: "{{ lookup('env', 'POSTGRES_DB') | default('db', true) }}"
+postgres_user: "{{ lookup('env', 'POSTGRES_USER') | default('usr', true) }}"
+postgres_password: "{{ lookup('env', 'POSTGRES_PASSWORD') | default('pwd', true) }}"
+postgres_volume_name: tp3-postgres-data
+
+api_container_name: backend-api
+api_image: "{{ dockerhub_username }}/tp-devops-simple-api:{{ image_tag }}"
+
+proxy_container_name: http-server
+proxy_image: "{{ dockerhub_username }}/tp-devops-http-server:{{ image_tag }}"

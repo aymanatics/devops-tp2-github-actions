@@ -1,0 +1,14 @@
+- name: Launch HTTP proxy and front
+  community.docker.docker_container:
+    name: "{{ proxy_container_name }}"
+    image: "{{ proxy_image }}"
+    state: started
+    restart_policy: unless-stopped
+    pull: "{{ container_pull_policy }}"
+    recreate: true
+    published_ports:
+      - "80:80"
+    networks:
+      - name: "{{ app_network_name }}"
+  vars:
+    ansible_python_interpreter: "{{ docker_python_interpreter }}"

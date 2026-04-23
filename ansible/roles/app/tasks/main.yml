@@ -1,0 +1,17 @@
+- name: Launch Spring Boot API
+  community.docker.docker_container:
+    name: "{{ api_container_name }}"
+    image: "{{ api_image }}"
+    state: started
+    restart_policy: unless-stopped
+    pull: "{{ container_pull_policy }}"
+    recreate: true
+    env:
+      POSTGRES_HOST: "{{ postgres_container_name }}"
+      POSTGRES_DB: "{{ postgres_db }}"
+      POSTGRES_USER: "{{ postgres_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_password }}"
+    networks:
+      - name: "{{ app_network_name }}"
+  vars:
+    ansible_python_interpreter: "{{ docker_python_interpreter }}"

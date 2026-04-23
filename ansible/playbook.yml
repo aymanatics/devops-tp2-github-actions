@@ -1,0 +1,11 @@
+- name: Deploy TP3 application
+  hosts: prod
+  gather_facts: true
+  become: true
+  roles:
+    - docker
+    - build_images
+    - network
+    - database
+    - app
+    - proxy
